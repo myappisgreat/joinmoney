@@ -38,6 +38,9 @@
 - `vendor/matter.min.js`：Matter.js 0.20.0，MIT 授權，授權全文見同資料夾內的 `MATTER-LICENSE.txt`。
 - `.nojekyll`：讓 GitHub Pages 直接提供靜態檔案。
 - `manifest.webmanifest`、`assets/icons/`：手機主畫面、桌面捷徑與瀏覽器分頁使用的圖示，包含 iPhone 的 180px、Android 的 192px/512px 和可裁切圖示。
+- 捷徑使用 `joinmoney.webmanifest`、`joinmoney-v2-*` 專屬圖示與 `?app=joinmoney` 識別，圖像來源固定為這個專案的第 14 階錢克禮照片。`manifest.webmanifest` 保留為相同內容的相容入口。
+
+如果主畫面仍顯示先前快取的其他圖示，請先刪除舊捷徑，重新整理「合成錢克禮」網站後，再從該頁加入主畫面。
 
 遊戲入口已放在儲存庫根目錄，可供 GitHub Pages 使用；開啟 GitHub Pages 服務後，將來源指定為這個分支的根目錄即可。
 
