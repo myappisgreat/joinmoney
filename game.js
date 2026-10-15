@@ -2,12 +2,14 @@
 (function (root) {
   'use strict';
   const M = typeof module !== 'undefined' && module.exports ? require('./vendor/matter.min.js') : root.Matter;
+  const SHAPES = typeof module !== 'undefined' && module.exports ? require('./assets/shapes.js') : root.CHARACTER_SHAPES;
   const WIDTH = 440, HEIGHT = 600, LIMIT = 112;
   const RADII = [17, 22, 27, 33, 39, 46, 54, 63, 73, 84, 96, 109, 121, 134];
   const NAMES = ['初見錢克禮', '睏睏錢克禮', '開飯錢克禮', '乾杯錢克禮', '沉思錢克禮', '自拍錢克禮', '採買錢克禮', '尋寶錢克禮', '開心錢克禮', '放空錢克禮', '散步錢克禮', '兜風錢克禮', '吃麵錢克禮', '究極錢克禮'];
   const COLORS = ['#bbcf97', '#e0bf87', '#d3aca4', '#b5cdcb', '#c9b4d5', '#e4c773', '#a9c6a3', '#d59f89', '#a3b9d3', '#ccbb83', '#9fbba4', '#c5abc8', '#c8ba74', '#d6a15e'];
-  const photo = level => `assets/photo-${String(level + 1).padStart(2, '0')}.webp`;
+  const photo = level => `assets/cutout-${String(level + 1).padStart(2, '0')}.webp`;
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const BOUNCE = .62;
 
   class MergeWorld {
     constructor() {
@@ -15,22 +17,38 @@
       this.engine.gravity.y = 1.15;
       this.events = []; this.contacts = []; this.danger = 0;
       M.Composite.add(this.engine.world, [
-        M.Bodies.rectangle(-25, HEIGHT / 2, 50, HEIGHT * 3, { isStatic: true, friction: .45 }),
-        M.Bodies.rectangle(WIDTH + 25, HEIGHT / 2, 50, HEIGHT * 3, { isStatic: true, friction: .45 }),
-        M.Bodies.rectangle(WIDTH / 2, HEIGHT + 25, WIDTH + 100, 50, { isStatic: true, friction: .65 })
+        M.Bodies.rectangle(-25, HEIGHT / 2, 50, HEIGHT * 3, { isStatic: true, friction: .24, restitution: BOUNCE }),
+        M.Bodies.rectangle(WIDTH + 25, HEIGHT / 2, 50, HEIGHT * 3, { isStatic: true, friction: .24, restitution: BOUNCE }),
+        M.Bodies.rectangle(WIDTH / 2, HEIGHT + 25, WIDTH + 100, 50, { isStatic: true, friction: .32, restitution: BOUNCE })
       ]);
       const collect = event => this.contacts.push(...event.pairs);
       M.Events.on(this.engine, 'collisionStart', collect);
       M.Events.on(this.engine, 'collisionActive', collect);
+      M.Events.on(this.engine, 'collisionStart', event => {
+        for (const { bodyA: a, bodyB: b, collision } of event.pairs) {
+          const normal = collision.normal;
+          const speed = Math.abs((a.velocity.x - b.velocity.x) * normal.x + (a.velocity.y - b.velocity.y) * normal.y);
+          if (speed < 1.6) continue;
+          for (const body of [a, b]) if (!body.isStatic) {
+            body.plugin.impact = { at: this.engine.timing.timestamp, strength: Math.min(.23, speed * .016), angle: Math.atan2(normal.y, normal.x) };
+          }
+        }
+      });
     }
     get balls() { return M.Composite.allBodies(this.engine.world).filter(b => !b.isStatic); }
     add(level, x, y, velocity) {
       const r = RADII[level];
-      const b = M.Bodies.circle(clamp(x, r + 1, WIDTH - r - 1), y, r, {
-        restitution: .19, friction: .45, frictionStatic: .75, frictionAir: .012,
+      const options = {
+        restitution: BOUNCE, friction: .24, frictionStatic: .5, frictionAir: .004,
         density: .002, sleepThreshold: 60,
         plugin: { level, born: this.engine.timing.timestamp }
-      }, 40);
+      };
+      const shape = SHAPES?.[level];
+      const b = shape?.vertices?.length >= 3
+        ? M.Bodies.fromVertices(x, y, [shape.vertices.map(p => ({ x: p.x * r, y: p.y * r }))], options, false, .01, 1, .01)
+        : M.Bodies.circle(x, y, r, options, 40);
+      if (b.bounds.min.x < 1) M.Body.translate(b, { x: 1 - b.bounds.min.x, y: 0 });
+      if (b.bounds.max.x > WIDTH - 1) M.Body.translate(b, { x: WIDTH - 1 - b.bounds.max.x, y: 0 });
       if (velocity) M.Body.setVelocity(b, velocity);
       M.Composite.add(this.engine.world, b); return b;
     }
@@ -56,11 +74,11 @@
         }
         this.events.push({ type: 'merge', level: final ? level : level + 1, x, y, points: final ? 500 : Math.min(500, 2 ** (level + 1)), final });
       }
-      const dangerBalls = this.balls.filter(b => b.position.y - RADII[b.plugin.level] < LIMIT && this.engine.timing.timestamp - b.plugin.born > 2200 && b.speed < 1.5);
+      const dangerBalls = this.balls.filter(b => b.bounds.min.y < LIMIT && this.engine.timing.timestamp - b.plugin.born > 2200 && b.speed < 1.5);
       this.danger = dangerBalls.length ? this.danger + dt : Math.max(0, this.danger - dt * 2);
     }
     revive() {
-      const above = this.balls.filter(b => b.position.y - RADII[b.plugin.level] < LIMIT + 80);
+      const above = this.balls.filter(b => b.bounds.min.y < LIMIT + 80);
       // Also clear the highest three pieces so a revive always creates useful room.
       const highest = [...this.balls].sort((a, b) => a.position.y - b.position.y).slice(0, 3);
       M.Composite.remove(this.engine.world, [...new Set([...above, ...highest])]);
@@ -70,7 +88,7 @@
     serialize() { return this.balls.map(b => ({ level: b.plugin.level, x: b.position.x, y: b.position.y, angle: b.angle })); }
     destroy() { M.Events.off(this.engine); M.Composite.clear(this.engine.world, false); M.Engine.clear(this.engine); }
   }
-  if (typeof module !== 'undefined' && module.exports) { module.exports = { MergeWorld, RADII, WIDTH, HEIGHT, LIMIT }; return; }
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { MergeWorld, RADII, WIDTH, HEIGHT, LIMIT, BOUNCE }; return; }
   if (!M) { document.getElementById('board-status').textContent = '物理引擎載入失敗，請重新整理'; return; }
 
   const $ = id => document.getElementById(id);
@@ -85,6 +103,7 @@
   let modalKind = '', resumed = false;
   const modal = $('modal'), content = $('modal-content'), canvas = $('game'), ctx = canvas.getContext('2d');
   const images = NAMES.map((_, i) => { const im = new Image(); im.src = photo(i); return im; });
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const session = storage.get('session', null);
   if (session && Array.isArray(session.balls) && session.balls.length <= 200 && Number.isFinite(session.score) && !session.over) {
     score = Math.max(0, session.score); coins = clamp(session.coins || 0, 0, 10000); earnedCoins = Math.floor(score / 2000);
@@ -217,13 +236,19 @@
     if (event.final) { coins++; toast('究極合成！+500 分，再送一枚復活幣！'); }
     addEffect(event); beep(event.level); syncUI();
   }
-  function drawBall(x, y, level, angle = 0, scale = 1, opacity = 1) {
-    const r = RADII[level] * scale; ctx.save(); ctx.globalAlpha = opacity; ctx.translate(x, y); ctx.rotate(angle);
-    ctx.shadowColor = '#55614022'; ctx.shadowBlur = 5; ctx.shadowOffsetY = 3;
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fillStyle = COLORS[level]; ctx.fill();
-    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0; ctx.save(); ctx.beginPath(); ctx.arc(0, 0, Math.max(1, r - 2.5), 0, Math.PI * 2); ctx.clip();
-    if (images[level].complete && images[level].naturalWidth) ctx.drawImage(images[level], -r, -r, r * 2, r * 2);
-    ctx.restore(); ctx.strokeStyle = COLORS[level]; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, r - 1.5, 0, Math.PI * 2); ctx.stroke();
+  function drawBall(x, y, level, angle = 0, scale = 1, opacity = 1, impact) {
+    const r = RADII[level], center = SHAPES?.[level]?.center || { x: 0, y: 0 };
+    ctx.save(); ctx.globalAlpha = opacity; ctx.translate(x, y); ctx.rotate(angle); ctx.scale(scale, scale);
+    if (impact && !reducedMotion) {
+      const elapsed = world.engine.timing.timestamp - impact.at;
+      if (elapsed < 600) {
+        const squash = impact.strength * Math.cos(elapsed / 43) * Math.exp(-elapsed / 145);
+        const localAngle = impact.angle - angle;
+        ctx.rotate(localAngle); ctx.scale(1 - squash, 1 / (1 - squash)); ctx.rotate(-localAngle);
+      }
+    }
+    ctx.shadowColor = '#43553338'; ctx.shadowBlur = 3; ctx.shadowOffsetY = 2;
+    if (images[level].complete && images[level].naturalWidth) ctx.drawImage(images[level], -r - center.x * r, -r - center.y * r, r * 2, r * 2);
     ctx.restore();
   }
   function render() {
@@ -236,7 +261,7 @@
     if (!over && !paused) {
       const x = clamp(aim, RADII[current] + 2, WIDTH - RADII[current] - 2);
       let bottom = HEIGHT;
-      for (const b of world.balls) { const dx = Math.abs(b.position.x - x), radius = RADII[b.plugin.level] + RADII[current]; if (dx < radius) bottom = Math.min(bottom, b.position.y - Math.sqrt(radius * radius - dx * dx)); }
+      for (const b of world.balls) if (x + RADII[current] > b.bounds.min.x && x - RADII[current] < b.bounds.max.x) bottom = Math.min(bottom, b.bounds.min.y - RADII[current]);
       ctx.strokeStyle = '#a5b88c55'; ctx.setLineDash([3, 6]); ctx.beginPath(); ctx.moveTo(x, 67 + RADII[current] + 6); ctx.lineTo(x, bottom); ctx.stroke(); ctx.setLineDash([]);
       const ready = world.engine.timing.timestamp - lastDrop >= 480;
       drawBall(x, 67, current, 0, 1, ready ? .95 : .35);
@@ -244,8 +269,8 @@
     }
     for (const b of world.balls) {
       const elapsed = world.engine.timing.timestamp - b.plugin.born;
-      const scale = elapsed < 160 ? .88 + .12 * Math.min(1, elapsed / 160) : 1;
-      drawBall(b.position.x, b.position.y, b.plugin.level, b.angle, scale);
+      const scale = !reducedMotion && elapsed < 550 ? 1 - .2 * Math.cos(elapsed / 55) * Math.exp(-elapsed / 150) : 1;
+      drawBall(b.position.x, b.position.y, b.plugin.level, b.angle, scale, 1, b.plugin.impact);
     }
     const running = !paused && !modal.open && !over && !document.hidden;
     for (const p of effects) { if (running) { p.x += p.vx; p.y += p.vy; p.vy += .07; p.life -= .024; } ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill(); }

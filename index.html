@@ -6,9 +6,10 @@
   <meta name="theme-color" content="#f3f6ef">
   <meta name="description" content="把日常，合成快樂。14 張錢克禮照片的碰撞合成小遊戲，支援手機與電腦。">
   <title>合成錢克禮 · 把日常，合成快樂</title>
-  <link rel="icon" href="assets/photo-14.webp">
+  <link rel="icon" href="assets/cutout-14.webp">
   <link rel="stylesheet" href="styles.css">
   <script defer src="vendor/matter.min.js"></script>
+  <script defer src="assets/shapes.js"></script>
   <script defer src="game.js"></script>
 </head>
 <body>
@@ -22,7 +23,7 @@
       <div class="edition"><span></span> 錢克禮・照片限定版</div>
       <h1>合成<br><span>錢克禮<span class="title-dot">.</span></span></h1>
       <p class="intro-copy">把日常，合成快樂。<br>兩個一樣的他，<br>碰在一起就會變得更大。</p>
-      <div class="photo-stack" aria-hidden="true"><div class="polaroid back"><img src="assets/photo-04.webp" alt=""><span>good times ☻</span></div><div class="polaroid front"><img src="assets/photo-14.webp" alt=""><span>越合，越快樂！</span></div><span class="sparkle">✳</span></div>
+      <div class="photo-stack" aria-hidden="true"><div class="polaroid back"><img src="assets/cutout-04.webp" alt=""><span>good times ☻</span></div><div class="polaroid front"><img src="assets/cutout-14.webp" alt=""><span>越合，越快樂！</span></div><span class="sparkle">✳</span></div>
       <div class="intro-note"><span class="tiny-star">✦</span><p>14 種錢克禮，等你來解鎖。<br><strong>今天能合出哪一個他？</strong></p></div>
     </section>
 
@@ -30,13 +31,13 @@
       <div class="scoreboard">
         <div class="score-item"><span>本局分數</span><strong id="score" aria-live="polite">0</strong></div>
         <div class="score-item best"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 5 4 4-6 4 6 5-4-2 13H5Z"/></svg> 最佳紀錄</span><strong id="best">0</strong></div>
-        <div class="next-item"><span>下一個</span><img id="next-photo" src="assets/photo-01.webp" alt="下一個：初見錢克禮"></div>
+        <div class="next-item"><span>下一個</span><img id="next-photo" src="assets/cutout-01.webp" alt="下一個：初見錢克禮"></div>
       </div>
       <div class="game-frame" id="game-frame">
         <canvas id="game" width="440" height="600" tabindex="0" aria-label="合成錢克禮遊戲區。移動滑鼠瞄準後點擊，或用左右鍵瞄準、空白鍵投放。" aria-describedby="game-instructions"></canvas>
         <div class="board-label"><span class="live-dot"></span><span id="board-status">準備好就投一個吧</span></div>
         <div class="coin-pill" title="每 2000 分獲得一枚復活幣"><span>✦</span> <span id="coins">0</span></div>
-        <div class="first-hint" id="first-hint"><span class="hint-circles"><img src="assets/photo-01.webp" alt=""><b>+</b><img src="assets/photo-01.webp" alt=""><b>→</b><img src="assets/photo-02.webp" alt=""></span><strong>一碰，就有新驚喜</strong><span class="desktop-hint">移動滑鼠瞄準・點一下投放</span><span class="touch-hint">拖動瞄準・放開投下</span><small>相同照片碰在一起，就能升級</small></div>
+        <div class="first-hint" id="first-hint"><span class="hint-circles"><img src="assets/cutout-01.webp" alt=""><b>+</b><img src="assets/cutout-01.webp" alt=""><b>→</b><img src="assets/cutout-02.webp" alt=""></span><strong>一碰，就有新驚喜</strong><span class="desktop-hint">移動滑鼠瞄準・點一下投放</span><span class="touch-hint">拖動瞄準・放開投下</span><small>相同照片碰在一起，就能升級</small></div>
         <div class="board-bottom">LITTLE MOMENTS. BIGGER SMILES.</div>
       </div>
       <div class="under-board"><span><span class="live-dot"></span> <span id="play-status">輪到你了</span></span><span>慢慢來，好事會碰在一起。</span></div>
