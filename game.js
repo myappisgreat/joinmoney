@@ -106,12 +106,12 @@
   let sound = storage.get('sound', true), paused = false, over = false, recorded = false;
   let current = 0, next = 0, aim = WIDTH / 2, lastDrop = -1000, drops = 0, touching = false;
   let effects = [], labels = [], audio, toastTimer, frameTime = 0, accumulator = 0;
-  let modalKind = '', resumed = false;
+  let modalKind = '', resumed = false, resultState = '';
   const modal = $('modal'), content = $('modal-content'), canvas = $('game'), ctx = canvas.getContext('2d');
   const images = NAMES.map((_, i) => { const im = new Image(); im.src = photo(i); return im; });
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const session = storage.get('session', null);
-  if (session && Array.isArray(session.balls) && session.balls.length <= 200 && Number.isFinite(session.score) && !session.over) {
+  if (session && Array.isArray(session.balls) && session.balls.length <= 200 && Number.isFinite(session.score)) {
     score = Math.max(0, session.score); coins = clamp(session.coins || 0, 0, 10000); earnedCoins = Math.floor(score / 2000);
     current = clamp(session.current || 0, 0, 3); next = clamp(session.next || 0, 0, 3); highest = clamp(session.highest || 0, 0, 13); drops = session.drops || 0;
     for (const b of session.balls) if (Number.isInteger(b.level) && b.level >= 0 && b.level <= 13 && Number.isFinite(b.x) && Number.isFinite(b.y)) {
@@ -119,10 +119,13 @@
       if (Number.isFinite(b.angle)) M.Body.setAngle(body, b.angle);
     }
     resumed = drops > 0;
+    over = session.over === true;
+    resultState = over ? (session.resultState === 'revive' && coins > 0 ? 'revive' : 'over') : '';
+    recorded = session.recorded === true || resultState === 'over';
   }
   function save() {
     storage.set('best', best); storage.set('unlocked', unlocked);
-    storage.set('session', over ? null : { score, coins, current, next, highest, drops, balls: world.serialize() });
+    storage.set('session', { score, coins, current, next, highest, drops, over, resultState, recorded, balls: world.serialize() });
   }
   function toast(message) { $('toast').textContent = message; $('toast').classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('show'), 2600); }
   function beep(level = 0, drop = false) {
@@ -156,6 +159,11 @@
   function showModal(kind, html, closable = true) {
     modalKind = kind; content.innerHTML = html; $('close-modal').hidden = !closable;
     if (!modal.open) modal.showModal();
+    if (kind === 'over' || kind === 'revive') {
+      // A held drop key must not activate the first button when this opens.
+      const title = content.querySelector('#modal-title');
+      title.tabIndex = -1; title.focus({ preventScroll: true });
+    }
     accumulator = 0;
   }
   function closeModal() { if (modalKind === 'over' || modalKind === 'revive') return; if (modalKind === 'pause') { resume(); return; } modal.close(); modalKind = ''; frameTime = 0; }
@@ -172,10 +180,11 @@
   }
   function restart() {
     record(); world.destroy(); world = new MergeWorld(); score = 0; coins = 0; earnedCoins = 0; highest = 0; current = 0; next = 0; drops = 0;
-    paused = false; over = false; recorded = false; lastDrop = -1000; aim = WIDTH / 2; effects = []; labels = [];
+    paused = false; over = false; recorded = false; resultState = ''; touching = false; lastDrop = -1000; aim = WIDTH / 2; effects = []; labels = [];
     modal.close(); modalKind = ''; accumulator = 0; frameTime = 0; syncUI(); save();
   }
   function requestRestart() {
+    if (over) { if (resultState === 'revive') showRevive(); else showGameOver(); return; }
     if (!drops) { restart(); return; }
     showModal('restart', `<h2 class="modal-title" id="modal-title">重新開始一場快樂？</h2><p class="modal-copy">這局已有 <strong>${score.toLocaleString()} 分</strong>。分數會留在紀錄裡，已解鎖的圖鑑也會保留。</p><div class="modal-actions"><button class="secondary" data-action="close">繼續這一局</button><button data-action="restart">重新開始 ↻</button></div>`);
   }
@@ -188,19 +197,25 @@
   $('restart-button').addEventListener('click', requestRestart); $('pause-button').addEventListener('click', togglePause);
   $('sound-button').addEventListener('click', () => { sound = !sound; storage.set('sound', sound); syncUI(); if (sound) beep(2); });
   function finish() {
-    over = true; record(); save(); $('board-status').textContent = '這一場，也很精彩';
-    showModal('over', `<div class="photo-detail"><img class="modal-photo" src="${photo(highest)}" alt="${NAMES[highest]}"><h2 class="modal-title" id="modal-title">快樂，明明還可以更大。</h2><div class="modal-score-label">本局分數</div><p class="modal-score">${score.toLocaleString()}</p><p class="modal-copy">合成到第 ${highest + 1} 階「${NAMES[highest]}」<br>最佳紀錄 ${best.toLocaleString()} 分</p></div><div class="modal-actions"><button data-action="restart">再來一局 ↻</button></div>`, false);
+    over = true; resultState = 'over'; touching = false; record(); save(); showGameOver();
+  }
+  function showGameOver() {
+    $('board-status').textContent = '遊戲結束・這一場，也很精彩';
+    $('play-status').textContent = '按重新開始再挑戰';
+    showModal('over', `<div class="photo-detail"><img class="modal-photo" src="${photo(highest)}" alt="${NAMES[highest]}"><h2 class="modal-title" id="modal-title">遊戲結束</h2><div class="modal-score-label">本局分數</div><p class="modal-score">${score.toLocaleString()}</p><p class="modal-copy">合成到第 ${highest + 1} 階「${NAMES[highest]}」<br>最佳紀錄 ${best.toLocaleString()} 分<br>這一場，也很精彩。準備好再開始下一局。</p></div><div class="modal-actions"><button data-action="restart">重新開始 ↻</button></div>`, false);
+  }
+  function showRevive() {
+    showModal('revive', `<h2 class="modal-title" id="modal-title">還能再合大一點！</h2><p class="modal-copy">這局已累積 <strong>${score.toLocaleString()} 分</strong>。<br>使用一枚復活幣，清除頂部照片，繼續挑戰。<br>目前還有 ${coins} 枚復活幣。</p><div class="modal-actions"><button class="secondary" data-action="finish">結束這一局</button><button data-action="revive">✦ 使用一枚復活幣</button></div>`, false);
   }
   function lose() {
     if (coins > 0) {
-      over = true;
-      showModal('revive', `<h2 class="modal-title" id="modal-title">還能再合大一點！</h2><p class="modal-copy">這局已累積 <strong>${score.toLocaleString()} 分</strong>。<br>使用一枚復活幣，清除頂部照片，繼續挑戰。<br>目前還有 ${coins} 枚復活幣。</p><div class="modal-actions"><button class="secondary" data-action="finish">結束這一局</button><button data-action="revive">✦ 使用一枚復活幣</button></div>`, false);
+      over = true; resultState = 'revive'; touching = false; save(); showRevive();
     } else finish();
   }
   content.addEventListener('click', e => {
     const action = e.target.closest('[data-action]')?.dataset.action;
     if (action === 'close') closeModal(); if (action === 'restart') restart(); if (action === 'resume') resume(); if (action === 'finish') finish();
-    if (action === 'revive' && coins > 0) { coins--; world.revive(); over = false; modal.close(); modalKind = ''; frameTime = 0; lastDrop = world.engine.timing.timestamp; syncUI(); save(); toast('再出發！這次一定可以更大。'); }
+    if (action === 'revive' && coins > 0) { coins--; world.revive(); over = false; resultState = ''; modal.close(); modalKind = ''; frameTime = 0; lastDrop = world.engine.timing.timestamp; syncUI(); save(); toast('再出發！這次一定可以更大。'); }
   });
   function drop() {
     const now = world.engine.timing.timestamp;
@@ -222,7 +237,12 @@
   canvas.addEventListener('pointercancel', () => { touching = false; });
   document.addEventListener('keydown', e => {
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (modal.open) { if (e.code === 'KeyP' && modalKind === 'pause') { e.preventDefault(); resume(); } return; }
+    if (modal.open) {
+      if ((modalKind === 'over' || modalKind === 'revive') && ['Space', 'Enter'].includes(e.code)
+          && (e.repeat || !e.target.closest('button[data-action]'))) e.preventDefault();
+      if (e.code === 'KeyP' && modalKind === 'pause') { e.preventDefault(); resume(); }
+      return;
+    }
     if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') { e.preventDefault(); aim = clamp(aim + (e.code === 'ArrowLeft' ? -12 : 12), RADII[current] + 2, WIDTH - RADII[current] - 2); }
     if (e.code === 'Space' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') { e.preventDefault(); if (!e.repeat) drop(); }
     if (e.code === 'KeyR' && !e.repeat) requestRestart(); if (e.code === 'KeyP' && !e.repeat) togglePause();
@@ -297,5 +317,8 @@
     render(); requestAnimationFrame(frame);
   }
   const dpr = Math.min(window.devicePixelRatio || 1, 2); canvas.width = WIDTH * dpr; canvas.height = HEIGHT * dpr; ctx.scale(dpr, dpr);
-  syncUI(); if (resumed) toast('歡迎回來，接著上次的快樂繼續玩。'); requestAnimationFrame(frame);
+  syncUI();
+  if (over) { if (resultState === 'revive') showRevive(); else showGameOver(); }
+  else if (resumed) toast('歡迎回來，接著上次的快樂繼續玩。');
+  requestAnimationFrame(frame);
 })(typeof globalThis !== 'undefined' ? globalThis : this);

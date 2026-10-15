@@ -3,5 +3,5 @@
   "version": "1.0.0",
   "private": true,
   "description": "14 張照片的合成錢克禮遊戲",
-  "scripts": { "start": "node server.cjs", "test": "node tests/physics.cjs" }
+  "scripts": { "start": "node server.cjs", "test": "node --test tests/physics.cjs tests/game-over.cjs" }
 }
