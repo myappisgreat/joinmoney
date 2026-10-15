@@ -51,6 +51,11 @@
       </div>
       <div class="under-board"><span><span class="live-dot"></span> <span id="play-status">輪到你了</span></span><span>慢慢來，好事會碰在一起。</span></div>
       <div class="game-actions"><button id="sound-button" aria-pressed="true"><span id="sound-icon">♫</span> <span id="sound-label">音效開啟</span></button><button id="pause-button"><span>Ⅱ</span> 暫停</button><button id="restart-button"><span>↻</span> 重新開始</button></div>
+      <div class="skill-actions" aria-label="本局小技能">
+        <button id="bomb-button" aria-pressed="false" aria-describedby="skill-note" title="B：選範圍引爆；Esc：取消"><span class="skill-icon" aria-hidden="true">💣</span><span><strong id="bomb-label">炸彈清場</strong><small>選一塊範圍清除</small></span><b id="bomb-count" aria-label="炸彈剩餘次數">1</b></button>
+        <button id="swap-button" aria-describedby="skill-note" title="X：更換準備投放的照片"><span class="skill-icon" aria-hidden="true">⇄</span><span><strong>換一張</strong><small>更換準備投放的照片</small></span><b id="swap-count" aria-label="換一張剩餘次數">2</b></button>
+      </div>
+      <p class="skill-note" id="skill-note" role="status">每局：炸彈 1 次・換一張 2 次。炸彈清除的照片不加分。</p>
       <p class="keyboard-note" id="game-instructions"><kbd>←</kbd> <kbd>→</kbd> 瞄準 <span>·</span> <kbd>SPACE</kbd> 投放 <span>·</span> <kbd>P</kbd> 暫停</p>
     </section>
 

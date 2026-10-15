@@ -21,6 +21,8 @@ function loadGame(saved, records = [{ score: 512, date: '2026-10-15T12:00:00Z', 
       addEventListener(name, callback) { events[name] = callback; },
       emit(name, event) { events[name]?.(event); },
       getContext() { return context2d; },
+      getBoundingClientRect() { return { left: 0, top: 0, width: 440, height: 600 }; },
+      setPointerCapture() {},
       querySelector() { return get('modal-title'); },
       focus() { document.activeElement = this; },
       closest(selector) { return this.dataset.action && selector.includes('data-action') ? this : null; },
@@ -93,4 +95,72 @@ test('revive offer survives refresh and finishing it keeps the game-over screen'
   assert.equal(game.session().score, 512);
   assert.match(game.get('modal-content').innerHTML, /遊戲結束/);
   assert.equal(JSON.parse(game.values.get('ckl-records')).length, 1);
+});
+
+const playing = { ...ended, over: false, resultState: '', recorded: false,
+  balls: [{ level: 0, x: 220, y: 390, angle: 0 }, { level: 2, x: 390, y: 555, angle: 0 }] };
+
+test('bomb selection freezes the board and can be cancelled without spending a use', () => {
+  const game = loadGame(playing, []);
+  game.get('game').focus(); game.key('KeyB');
+  assert.equal(game.get('bomb-label').textContent, '取消炸彈');
+  game.tick(0); game.tick(1000); game.autosave();
+  assert.equal(game.session().balls[0].y, 390);
+  assert.equal(game.session().bombsLeft, 1);
+  game.key('Escape'); game.autosave();
+  assert.equal(game.get('bomb-label').textContent, '炸彈清場');
+  assert.equal(game.session().bombsLeft, 1);
+});
+
+test('an empty blast costs nothing; touch release clears only its area and persists the spent use', () => {
+  const game = loadGame(playing, []);
+  game.get('game').focus(); game.key('KeyB');
+  game.get('game').emit('pointermove', { clientX: 10, clientY: 10 });
+  game.key('Space'); game.autosave();
+  assert.equal(game.session().bombsLeft, 1);
+  assert.equal(game.session().balls.length, 2);
+  assert.equal(game.get('bomb-label').textContent, '取消炸彈');
+  game.get('game').emit('pointerdown', { button: 0, pointerType: 'touch', pointerId: 1, clientX: 220, clientY: 390, preventDefault() {} });
+  game.autosave(); assert.equal(game.session().bombsLeft, 1);
+  game.get('game').emit('pointerup', { clientX: 220, clientY: 390 });
+  assert.equal(game.session().bombsLeft, 0);
+  assert.equal(game.session().balls.length, 1);
+  assert.equal(game.session().balls[0].level, 2);
+  assert.equal(game.session().score, playing.score);
+  assert.equal(game.session().drops, playing.drops);
+  assert.equal(game.session().current, playing.current);
+  const refreshed = loadGame(game.session(), []);
+  assert.equal(refreshed.get('bomb-button').disabled, true);
+  assert.equal(refreshed.get('bomb-count').textContent, 0);
+});
+
+test('swap changes the current photo twice, preserves the preview, and refills only on restart', () => {
+  const game = loadGame(playing, []);
+  game.get('game').focus();
+  game.key('KeyX'); const first = game.session();
+  assert.notEqual(first.current, playing.current);
+  assert.equal(first.next, playing.next);
+  assert.equal(first.swapsLeft, 1);
+  game.key('KeyX'); const second = game.session();
+  assert.notEqual(second.current, first.current);
+  assert.equal(second.swapsLeft, 0);
+  game.key('KeyX'); assert.equal(game.session().current, second.current);
+  const refreshed = loadGame(game.session(), []);
+  assert.equal(refreshed.get('swap-button').disabled, true);
+  refreshed.get('restart-button').emit('click', {}); refreshed.click('restart');
+  assert.equal(refreshed.session().bombsLeft, 1);
+  assert.equal(refreshed.session().swapsLeft, 2);
+});
+
+test('skills cannot change finished games or spend uses while paused', () => {
+  const game = loadGame(ended);
+  game.get('bomb-button').emit('click', {}); game.get('swap-button').emit('click', {}); game.autosave();
+  assert.equal(game.session().over, true);
+  assert.equal(game.session().score, ended.score);
+  assert.equal(game.session().bombsLeft, 1);
+  assert.equal(game.session().swapsLeft, 2);
+  const active = loadGame(playing, []);
+  active.get('game').focus(); active.key('KeyP');
+  active.get('swap-button').emit('click', {}); active.autosave();
+  assert.equal(active.session().swapsLeft, 2);
 });

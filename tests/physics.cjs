@@ -82,3 +82,23 @@ test('portrait framing has comparable width and height and grows at every level'
   }
   assert.ok(RADII[0] >= 24);
 });
+
+test('blast follows polygon boundaries, preserves walls and wakes remaining pieces', () => {
+  const w = new MergeWorld();
+  const large = w.add(13, 275, 330);
+  const far = w.add(0, 40, 555);
+  Matter.Sleeping.set(far, true);
+  w.danger = 1000;
+  const target = large.vertices[0];
+  // A small circle touching a large silhouette must work even far from its center.
+  const removed = w.blast(target.x, target.y, 6);
+  assert.equal(removed.length, 1); assert.equal(removed[0], large);
+  assert.equal(w.balls.length, 1); assert.equal(w.balls[0], far);
+  assert.equal(far.isSleeping, false); assert.equal(w.danger, 0);
+  assert.equal(Matter.Composite.allBodies(w.engine.world).filter(b => b.isStatic).length, 3);
+  assert.equal(w.events.length, 0);
+  w.danger = 600;
+  assert.equal(w.blast(400, 50, 10).length, 0);
+  assert.equal(w.danger, 600);
+  w.destroy();
+});

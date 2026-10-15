@@ -10,3 +10,17 @@
 .hint-circles img{box-shadow:none}
 .collect-item.locked img{filter:grayscale(.85) drop-shadow(0 2px 1px #3d513320);opacity:.46}
 .polaroid img{object-fit:contain;filter:drop-shadow(0 3px 2px #3d513326)}
+.skill-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.skill-actions button{display:flex;align-items:center;gap:9px;padding:12px 10px;border:1px solid #d5dfc9;border-radius:11px;background:#fffdf6;text-align:left;min-width:0}
+.skill-actions button:hover:not(:disabled){background:#e9efde}
+.skill-actions button:disabled{opacity:.43;cursor:not-allowed;transform:none}
+.skill-actions button[aria-pressed="true"]{border-color:#d39360;background:#fcf0de;box-shadow:0 0 0 2px #e5b47b25}
+.skill-icon{font-size:21px;line-height:1;color:#74915c}
+.skill-actions button>span:nth-child(2){flex:1;min-width:0}
+.skill-actions strong{font-size:11px;font-weight:600;display:block}
+.skill-actions small{display:block;font-size:8px;color:#9aa48c;line-height:1.5;margin-top:3px}
+.skill-actions b{font:600 11px "Segoe UI",sans-serif;background:#eaf0df;border-radius:50%;width:23px;height:23px;display:grid;place-items:center;color:#718958;flex-shrink:0}
+.skill-note{font-size:9px;line-height:1.8;color:#96a189;margin:7px 1px 0;min-height:16px}
+canvas.bomb-aiming{cursor:crosshair}
+@media(min-width:861px) and (max-height:820px){.skill-actions button{padding:9px 8px;gap:6px}.skill-actions strong{font-size:10px}.skill-actions small{font-size:7px}.skill-icon{font-size:18px}.skill-note{font-size:8px}}
+@media(max-width:600px){.skill-actions button{padding:12px 10px}.skill-actions strong{font-size:12px}.skill-actions small{font-size:9px}.skill-note{font-size:9px}}
