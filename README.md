@@ -37,6 +37,7 @@
 - `docs/cutout-prompts.md`：14 張素材使用的完整 ImageGen 去背提示詞。
 - `vendor/matter.min.js`：Matter.js 0.20.0，MIT 授權，授權全文見同資料夾內的 `MATTER-LICENSE.txt`。
 - `.nojekyll`：讓 GitHub Pages 直接提供靜態檔案。
+- `manifest.webmanifest`、`assets/icons/`：手機主畫面、桌面捷徑與瀏覽器分頁使用的圖示，包含 iPhone 的 180px、Android 的 192px/512px 和可裁切圖示。
 
 遊戲入口已放在儲存庫根目錄，可供 GitHub Pages 使用；開啟 GitHub Pages 服務後，將來源指定為這個分支的根目錄即可。
 
