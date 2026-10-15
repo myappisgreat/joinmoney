@@ -1,0 +1,7 @@
+node_modules/
+.sites-runtime/
+.sites-checkout/
+*.zip
+contact-sheet.jpg
+crop-preview.jpg
+preview*.png
