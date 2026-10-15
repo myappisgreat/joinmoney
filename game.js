@@ -4,12 +4,13 @@
   const M = typeof module !== 'undefined' && module.exports ? require('./vendor/matter.min.js') : root.Matter;
   const SHAPES = typeof module !== 'undefined' && module.exports ? require('./assets/shapes.js') : root.CHARACTER_SHAPES;
   const WIDTH = 440, HEIGHT = 600, LIMIT = 112;
-  const RADII = [17, 22, 27, 33, 39, 46, 54, 63, 73, 84, 96, 109, 121, 134];
+  const RADII = [24, 30, 36, 43, 50, 58, 67, 77, 88, 100, 113, 127, 142, 158];
   const NAMES = ['初見錢克禮', '睏睏錢克禮', '開飯錢克禮', '乾杯錢克禮', '沉思錢克禮', '自拍錢克禮', '採買錢克禮', '尋寶錢克禮', '開心錢克禮', '放空錢克禮', '散步錢克禮', '兜風錢克禮', '吃麵錢克禮', '究極錢克禮'];
   const COLORS = ['#bbcf97', '#e0bf87', '#d3aca4', '#b5cdcb', '#c9b4d5', '#e4c773', '#a9c6a3', '#d59f89', '#a3b9d3', '#ccbb83', '#9fbba4', '#c5abc8', '#c8ba74', '#d6a15e'];
-  const photo = level => `assets/cutout-${String(level + 1).padStart(2, '0')}.webp`;
+  const photo = level => `assets/portrait-${String(level + 1).padStart(2, '0')}.svg`;
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
-  const BOUNCE = .62;
+  const BOUNCE = .38;
+  const FLOOR_BOUNCE = .08;
 
   class MergeWorld {
     constructor() {
@@ -19,18 +20,23 @@
       M.Composite.add(this.engine.world, [
         M.Bodies.rectangle(-25, HEIGHT / 2, 50, HEIGHT * 3, { isStatic: true, friction: .24, restitution: BOUNCE }),
         M.Bodies.rectangle(WIDTH + 25, HEIGHT / 2, 50, HEIGHT * 3, { isStatic: true, friction: .24, restitution: BOUNCE }),
-        M.Bodies.rectangle(WIDTH / 2, HEIGHT + 25, WIDTH + 100, 50, { isStatic: true, friction: .32, restitution: BOUNCE })
+        M.Bodies.rectangle(WIDTH / 2, HEIGHT + 25, WIDTH + 100, 50, { isStatic: true, label: 'floor', friction: .5, restitution: FLOOR_BOUNCE })
       ]);
       const collect = event => this.contacts.push(...event.pairs);
       M.Events.on(this.engine, 'collisionStart', collect);
       M.Events.on(this.engine, 'collisionActive', collect);
       M.Events.on(this.engine, 'collisionStart', event => {
-        for (const { bodyA: a, bodyB: b, collision } of event.pairs) {
+        for (const pair of event.pairs) {
+          const { bodyA: a, bodyB: b, collision } = pair;
+          const onFloor = a.label === 'floor' || b.label === 'floor';
+          // Matter combines restitution using max(), so override the actual
+          // floor contact before velocity resolution instead of only its body.
+          if (onFloor) { pair.restitution = FLOOR_BOUNCE; pair.friction = .4; }
           const normal = collision.normal;
           const speed = Math.abs((a.velocity.x - b.velocity.x) * normal.x + (a.velocity.y - b.velocity.y) * normal.y);
           if (speed < 1.6) continue;
           for (const body of [a, b]) if (!body.isStatic) {
-            body.plugin.impact = { at: this.engine.timing.timestamp, strength: Math.min(.23, speed * .016), angle: Math.atan2(normal.y, normal.x) };
+            body.plugin.impact = { at: this.engine.timing.timestamp, strength: Math.min(onFloor ? .08 : .18, speed * (onFloor ? .006 : .012)), angle: Math.atan2(normal.y, normal.x) };
           }
         }
       });
@@ -88,7 +94,7 @@
     serialize() { return this.balls.map(b => ({ level: b.plugin.level, x: b.position.x, y: b.position.y, angle: b.angle })); }
     destroy() { M.Events.off(this.engine); M.Composite.clear(this.engine.world, false); M.Engine.clear(this.engine); }
   }
-  if (typeof module !== 'undefined' && module.exports) { module.exports = { MergeWorld, RADII, WIDTH, HEIGHT, LIMIT, BOUNCE }; return; }
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { MergeWorld, RADII, WIDTH, HEIGHT, LIMIT, BOUNCE, FLOOR_BOUNCE }; return; }
   if (!M) { document.getElementById('board-status').textContent = '物理引擎載入失敗，請重新整理'; return; }
 
   const $ = id => document.getElementById(id);

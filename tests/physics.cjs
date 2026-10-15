@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const Matter = require('../vendor/matter.min.js');
 const shapes = require('../assets/shapes.js');
-const { MergeWorld, RADII, HEIGHT, BOUNCE } = require('../game.js');
+const { MergeWorld, RADII, HEIGHT } = require('../game.js');
 const simulate = (world, frames) => { for (let i = 0; i < frames; i++) world.step(); };
 
 test('same photos merge once and award points', () => {
@@ -37,16 +37,20 @@ test('newly dropped photos do not cause a loss and revive clears space', () => {
   const before = w.balls.length; w.danger = 2000; w.revive(); assert.ok(w.balls.length < before); assert.equal(w.danger, 0); w.destroy();
 });
 
-test('floor impact rebounds visibly and records squash feedback', () => {
-  const w = new MergeWorld(); const b = w.add(0, 220, 150);
-  let rebound = 0, impact = false;
-  for (let i = 0; i < 180; i++) {
-    w.step();
-    if (b.plugin.impact) { impact = true; rebound = Math.min(rebound, b.velocity.y); }
-    assert.ok(Number.isFinite(b.position.x) && Number.isFinite(b.position.y));
+test('all portraits land with a small rebound and settle on the floor', () => {
+  for (let level = 0; level < 14; level++) {
+    const w = new MergeWorld(); const b = w.add(level, 220, 150);
+    let rebound = 0, impact = false;
+    for (let i = 0; i < 360; i++) {
+      w.step();
+      if (b.plugin.impact) { impact = true; rebound = Math.min(rebound, b.velocity.y); }
+      assert.ok(Number.isFinite(b.position.x) && Number.isFinite(b.position.y));
+    }
+    assert.ok(impact);
+    assert.ok(rebound > -4, `level ${level + 1} rebound velocity ${rebound}`);
+    assert.ok(b.speed < .5, `level ${level + 1} must settle`);
+    w.destroy();
   }
-  assert.ok(BOUNCE >= .6); assert.ok(impact); assert.ok(rebound < -5, `rebound velocity ${rebound}`);
-  w.destroy();
 });
 
 test('all fourteen pieces use finite alpha-derived polygon bounds', () => {
@@ -65,4 +69,16 @@ test('all fourteen pieces use finite alpha-derived polygon bounds', () => {
     assert.ok(b.vertices.some(v => Math.hypot(v.x - expected.x, v.y - expected.y) < .02));
   }
   w.destroy();
+});
+
+test('portrait framing has comparable width and height and grows at every level', () => {
+  let previous = 0;
+  for (let i = 0; i < 14; i++) {
+    const { width, height } = shapes[i].portraitBounds;
+    assert.ok(Math.min(width, height) / Math.max(width, height) >= .89);
+    const longest = Math.max(width, height) / 256 * RADII[i];
+    assert.ok(longest > previous);
+    previous = longest;
+  }
+  assert.ok(RADII[0] >= 24);
 });
