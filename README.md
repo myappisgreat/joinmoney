@@ -47,6 +47,14 @@
 
 遊戲入口已放在儲存庫根目錄，可供 GitHub Pages 使用；開啟 GitHub Pages 服務後，將來源指定為這個分支的根目錄即可。
 
-`npm test` 驗證碰撞升級、異階碰撞、連鎖合成、最終階消除、復活清場和落地反彈。
+## 更新與部署
+
+修改遊戲或素材後，執行 `npm run release`，再執行 `npm test`，將所有修改的檔案一起 commit、push。這次已先產生好版本，直接提交即可。
+
+`scripts/prepare-release.cjs` 會依檔案內容產生 JS、CSS、照片與圖示的版本網址，避免新版頁面沿用舊資源；Windows 與 GitHub 的換行差異不影響版本。網頁頁尾會顯示版本，可用來確認發佈結果。此腳本僅需 Node.js，不需安裝套件；GitHub Pages 仍直接使用根目錄靜態檔案，不必切換部署來源。
+
+`npm test` 先檢查資源是否存在、HTML 是否具備遊戲需要的控制項、兩份捷徑設定是否一致，以及資源版本是否最新，再驗證碰撞升級、異階碰撞、連鎖合成、最終階消除、復活清場、落地反彈、技能與結束畫面。
+
+若 Actions 顯示 `updating_pages` 後 `Timeout reached, aborting!`，代表發佈階段超時；資源版本號無法解除伺服器端的部署卡住。請在 Actions 確認最新提交的部署成功，才會看到新版。若重跑任務長時間排隊，可先取消該任務，再選擇 Re-run all jobs；不需要刪除遊戲存檔。
 
 玩法參考：[合成大奶娃](https://yhsome.github.io/BigNaiWa/v1/)。本專案的介面與程式另行實作。

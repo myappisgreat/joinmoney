@@ -7,7 +7,8 @@
   const RADII = [24, 30, 36, 43, 50, 58, 67, 77, 88, 100, 113, 127, 142, 158];
   const NAMES = ['初見錢克禮', '睏睏錢克禮', '開飯錢克禮', '乾杯錢克禮', '沉思錢克禮', '自拍錢克禮', '採買錢克禮', '尋寶錢克禮', '開心錢克禮', '放空錢克禮', '散步錢克禮', '兜風錢克禮', '吃麵錢克禮', '究極錢克禮'];
   const COLORS = ['#bbcf97', '#e0bf87', '#d3aca4', '#b5cdcb', '#c9b4d5', '#e4c773', '#a9c6a3', '#d59f89', '#a3b9d3', '#ccbb83', '#9fbba4', '#c5abc8', '#c8ba74', '#d6a15e'];
-  const photo = level => `assets/portrait-${String(level + 1).padStart(2, '0')}.svg`;
+  const IMAGE_VERSION = '73cffb8a74ca'; // Updated by npm run release.
+  const photo = level => `assets/portrait-${String(level + 1).padStart(2, '0')}.svg?v=${IMAGE_VERSION}`;
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
   const BOUNCE = .38;
   const FLOOR_BOUNCE = .08;
